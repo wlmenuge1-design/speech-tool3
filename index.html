@@ -27,7 +27,6 @@ button:hover {
 #display {
     margin-top: 30px;
     font-size: 24px;
-    line-height: 1.6;
     min-height: 60px;
 }
 
@@ -58,15 +57,12 @@ button:hover {
 <button onclick="resumeSpeech()">⏵ Fortsetzen</button>
 <button onclick="stopSpeech()">⏹ Stopp</button>
 
-<!-- Progress bar -->
 <div style="margin-top:20px;">
     <input type="range" id="progress" min="0" max="100" value="0" style="width:100%;">
 </div>
 
-<!-- Dynamic display -->
 <div id="display"></div>
 
-<!-- Hidden text -->
 <div id="content" style="display:none;">
 Die Alpen
 
@@ -88,10 +84,13 @@ Klettern in den Alpen ist nicht nur das moderne Klettern, sondern eine Mischung 
 </div>
 
 <script>
+let sentences = [];
+let currentSentence = 0;
+let currentWordIndex = 0;
+let totalWords = 0;
+let spokenWords = 0;
+
 let utterance;
-let words = [];
-let index = 0;
-let fullText = "";
 
 const display = document.getElementById("display");
 const rateSlider = document.getElementById("rate");
@@ -100,39 +99,64 @@ const progress = document.getElementById("progress");
 
 rateSlider.oninput = () => {
     rateValue.textContent = rateSlider.value;
+
+    if (speechSynthesis.speaking) {
+        speakSentence(currentSentence, currentWordIndex);
+    }
 };
 
-function startSpeech(startIndex = 0) {
-    fullText = document.getElementById("content").innerText;
-    words = fullText.split(/\s+/);
-    index = startIndex;
+function prepareText() {
+    const text = document.getElementById("content").innerText;
 
+    sentences = text.match(/[^.!?]+[.!?]*/g) || [];
+
+    totalWords = text.split(/\s+/).length;
+    spokenWords = 0;
+}
+
+function startSpeech() {
+    prepareText();
+    currentSentence = 0;
+    currentWordIndex = 0;
     display.innerHTML = "";
+    speakSentence(currentSentence, 0);
+}
 
-    if ('speechSynthesis' in window) {
-        speechSynthesis.cancel();
+function speakSentence(sentenceIndex, startWord = 0) {
+    if (sentenceIndex >= sentences.length) return;
 
-        const remainingText = words.slice(startIndex).join(" ");
+    speechSynthesis.cancel();
 
-        utterance = new SpeechSynthesisUtterance(remainingText);
-        utterance.lang = 'de-DE';
-        utterance.rate = parseFloat(rateSlider.value);
+    const sentence = sentences[sentenceIndex];
+    const words = sentence.split(/\s+/);
+    currentWordIndex = startWord;
 
-        utterance.onboundary = function(event) {
-            if (event.name === "word") {
-                showWord(words[index]);
-                index++;
+    const remainingText = words.slice(startWord).join(" ");
 
-                // update progress
-                progress.value = (index / words.length) * 100;
-            }
-        };
+    utterance = new SpeechSynthesisUtterance(remainingText);
+    utterance.lang = 'de-DE';
+    utterance.rate = parseFloat(rateSlider.value);
 
-        const voices = speechSynthesis.getVoices();
-        utterance.voice = voices.find(v => v.lang === 'de-DE') || voices[0];
+    utterance.onboundary = function(event) {
+        if (event.name === "word") {
+            showWord(words[currentWordIndex]);
+            currentWordIndex++;
+            spokenWords++;
 
-        speechSynthesis.speak(utterance);
-    }
+            progress.value = (spokenWords / totalWords) * 100;
+        }
+    };
+
+    utterance.onend = function() {
+        currentSentence++;
+        currentWordIndex = 0;
+        speakSentence(currentSentence, 0);
+    };
+
+    const voices = speechSynthesis.getVoices();
+    utterance.voice = voices.find(v => v.lang === 'de-DE') || voices[0];
+
+    speechSynthesis.speak(utterance);
 }
 
 function showWord(word) {
@@ -158,12 +182,28 @@ function stopSpeech() {
     speechSynthesis.cancel();
     display.innerHTML = "";
     progress.value = 0;
+    spokenWords = 0;
 }
 
 // Scrubbing
 progress.addEventListener("input", function() {
-    const newIndex = Math.floor((progress.value / 100) * words.length);
-    startSpeech(newIndex);
+    const targetWord = Math.floor((progress.value / 100) * totalWords);
+
+    let count = 0;
+
+    for (let i = 0; i < sentences.length; i++) {
+        const words = sentences[i].split(/\s+/);
+
+        if (count + words.length > targetWord) {
+            currentSentence = i;
+            currentWordIndex = targetWord - count;
+            spokenWords = targetWord;
+            speakSentence(currentSentence, currentWordIndex);
+            break;
+        }
+
+        count += words.length;
+    }
 });
 </script>
 
