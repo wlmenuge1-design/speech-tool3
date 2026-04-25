@@ -57,10 +57,6 @@ button:hover {
 <button onclick="resumeSpeech()">⏵ Fortsetzen</button>
 <button onclick="stopSpeech()">⏹ Stopp</button>
 
-<div style="margin-top:20px;">
-    <input type="range" id="progress" min="0" max="100" value="0" style="width:100%;">
-</div>
-
 <div id="display"></div>
 
 <div id="content" style="display:none;">
@@ -87,15 +83,11 @@ Klettern in den Alpen ist nicht nur das moderne Klettern, sondern eine Mischung 
 let sentences = [];
 let currentSentence = 0;
 let currentWordIndex = 0;
-let totalWords = 0;
-let spokenWords = 0;
-
 let utterance;
 
 const display = document.getElementById("display");
 const rateSlider = document.getElementById("rate");
 const rateValue = document.getElementById("rateValue");
-const progress = document.getElementById("progress");
 
 rateSlider.oninput = () => {
     rateValue.textContent = rateSlider.value;
@@ -107,11 +99,7 @@ rateSlider.oninput = () => {
 
 function prepareText() {
     const text = document.getElementById("content").innerText;
-
     sentences = text.match(/[^.!?]+[.!?]*/g) || [];
-
-    totalWords = text.split(/\s+/).length;
-    spokenWords = 0;
 }
 
 function startSpeech() {
@@ -141,9 +129,6 @@ function speakSentence(sentenceIndex, startWord = 0) {
         if (event.name === "word") {
             showWord(words[currentWordIndex]);
             currentWordIndex++;
-            spokenWords++;
-
-            progress.value = (spokenWords / totalWords) * 100;
         }
     };
 
@@ -181,30 +166,7 @@ function resumeSpeech() {
 function stopSpeech() {
     speechSynthesis.cancel();
     display.innerHTML = "";
-    progress.value = 0;
-    spokenWords = 0;
 }
-
-// Scrubbing
-progress.addEventListener("input", function() {
-    const targetWord = Math.floor((progress.value / 100) * totalWords);
-
-    let count = 0;
-
-    for (let i = 0; i < sentences.length; i++) {
-        const words = sentences[i].split(/\s+/);
-
-        if (count + words.length > targetWord) {
-            currentSentence = i;
-            currentWordIndex = targetWord - count;
-            spokenWords = targetWord;
-            speakSentence(currentSentence, currentWordIndex);
-            break;
-        }
-
-        count += words.length;
-    }
-});
 </script>
 
 </body>
