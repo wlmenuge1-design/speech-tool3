@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,60 +21,62 @@
         button:hover {
             background-color: #45a049;
         }
-
-        #content {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #f4f4f4;
-            border-radius: 5px;
-            max-width: 600px;
-            margin-bottom: 20px;
-        }
     </style>
 </head>
 <body>
 
-<h1>Welcome to the Accessibility Text-to-Speech Tool</h1>
+<h1>Accessibility Text-to-Speech Tool</h1>
+<p>Klicken Sie auf die Schaltfläche, um den Text vorlesen zu lassen.</p>
 
-<p>This tool will read aloud the text you want, helping improve accessibility on your website. Click the button below to hear the content of this page.</p>
+<button onclick="startTextToSpeech()">🎤 Text vorlesen</button>
 
-<!-- Button to trigger text-to-speech -->
-<button onclick="startTextToSpeech()">🎤 Read this page</button>
+<!-- Hidden content for speech -->
+<div id="content" style="display:none;">
+Die Alpen
 
-<div id="content">
-    <h2>Reference Text</h2>
-    <p>
-        Die Alpen, die sich über acht Länder erstrecken, blicken auf eine reiche Geschichte zurück. Seit den Zeiten Hannibals und darüber hinaus haben die Alpen die Geschichte Europas geprägt. Jedoch wurde erst vor relativ kurzer Zeit das Besteigen der Berge zum Thema kam.
-    </p>
-    <p>
-        Ursprünge Camping in den Alpen Für Jahrhunderte glaubten lokale Menschen in den Alpen, dass es unmöglich war, in den Bergen zu campen. Deshalb haben Klettergruppen nur Tagesaufträge eingeführt.
-    </p>
-    <!-- More content here -->
+Die Alpen, die sich über acht Länder erstrecken, blicken auf eine reiche Geschichte zurück.
+
+Seit den Zeiten Hannibals und darüber hinaus haben die Alpen die Geschichte Europas geprägt. Jedoch wurde erst vor relativ kurzer Zeit das Besteigen der Berge zum Thema.
+
+Ursprünge Camping in den Alpen:
+
+Für Jahrhunderte glaubten lokale Menschen in den Alpen, dass es unmöglich war, in den Bergen zu campen. Deshalb haben Klettergruppen nur Tagesaufträge eingeführt. Deshalb wurden Gipfel wie der des Mont Blanc effektiv unerreichbar, weil sie einfach zu weit von den Alpendörfern entfernt waren, um an einem Tag erreicht zu werden.
+
+Das erste Beispiel dafür, dass jemand in den Alpen zeltet, fand im Jahr 1786 statt. Ein lokaler Edelsteinsammler namens Jacques Balmat hat unabsichtlich in der Höhe des Mont Blanc übernachtet – etwas, das vorher als unmöglich angesehen wurde.
+
+Kurz danach wurde der Gipfel des Mont Blanc erreicht, weil eine Klettergruppe zum ersten Mal einen zweitägigen Auftrag durchgeführt hat. Dieser Erfolg wurde nur möglich dank Balmats Übernachtung in den Bergen und markierte den Beginn einer neuen Ära der alpinen Erforschung.
+
+Angeregt durch seinen Erfolg bestieg Horace-Bénédict de Saussure den Mont Blanc. Dadurch löste er eine Obsession in aristokratischen und wohlhabenden Kreisen in ganz Europa aus. Ab diesem Zeitpunkt wurden Menschen aus der ganzen Welt in die Alpen gezogen.
+
+Klettern in den Alpen:
+
+Klettern in den Alpen ist nicht nur das moderne Klettern, sondern eine Mischung aus Klettern und Bergsteigen. Nach dem anfänglichen Interesse der wohlhabenden Kreise entwickelte sich ein neues Motiv: nationaler Stolz. Der Erfolg in den Alpen wurde eng mit dem Ansehen eines Landes verbunden.
 </div>
 
 <script>
 function startTextToSpeech() {
-    const text = document.getElementById("content").innerText;  // Get all the text inside the content div
-    
-    // Check if the browser supports SpeechSynthesis API
+    const text = document.getElementById("content").innerText;
+
     if ('speechSynthesis' in window) {
-        let speech = new SpeechSynthesisUtterance(text);  // Create a speech object with the text
-        speech.lang = 'de-DE';  // Set the language for German (can be changed based on your site's language)
-        
-        // Start speaking the text
-        window.speechSynthesis.speak(speech);
-        
-        // Optionally add event listener to notify when speech ends
-        speech.onend = function(event) {
-            console.log("Speech has finished.");
-        };
+        speechSynthesis.cancel();
 
-        speech.onerror = function(event) {
-            console.log("There was an error with the speech synthesis:", event.error);
-        };
+        const speech = new SpeechSynthesisUtterance(text);
+        speech.lang = 'de-DE';
 
+        const voices = speechSynthesis.getVoices();
+
+        if (voices.length === 0) {
+            speechSynthesis.onvoiceschanged = () => {
+                const loadedVoices = speechSynthesis.getVoices();
+                speech.voice = loadedVoices.find(v => v.lang === 'de-DE') || loadedVoices[0];
+                speechSynthesis.speak(speech);
+            };
+        } else {
+            speech.voice = voices.find(v => v.lang === 'de-DE') || voices[0];
+            speechSynthesis.speak(speech);
+        }
     } else {
-        alert("Sorry, your browser does not support text-to-speech.");
+        alert("Ihr Browser unterstützt keine Sprachsynthese.");
     }
 }
 </script>
