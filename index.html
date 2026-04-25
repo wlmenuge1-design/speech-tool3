@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text-to-Speech Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #content {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f4f4f4;
+            border-radius: 5px;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Welcome to the Accessibility Text-to-Speech Tool</h1>
+
+<p>This tool will read aloud the text you want, helping improve accessibility on your website. Click the button below to hear the content of this page.</p>
+
+<!-- Button to trigger text-to-speech -->
+<button onclick="startTextToSpeech()">🎤 Read this page</button>
+
+<div id="content">
+    <h2>Reference Text</h2>
+    <p>
+        Die Alpen, die sich über acht Länder erstrecken, blicken auf eine reiche Geschichte zurück. Seit den Zeiten Hannibals und darüber hinaus haben die Alpen die Geschichte Europas geprägt. Jedoch wurde erst vor relativ kurzer Zeit das Besteigen der Berge zum Thema kam.
+    </p>
+    <p>
+        Ursprünge Camping in den Alpen Für Jahrhunderte glaubten lokale Menschen in den Alpen, dass es unmöglich war, in den Bergen zu campen. Deshalb haben Klettergruppen nur Tagesaufträge eingeführt.
+    </p>
+    <!-- More content here -->
+</div>
+
+<script>
+function startTextToSpeech() {
+    const text = document.getElementById("content").innerText;  // Get all the text inside the content div
+    
+    // Check if the browser supports SpeechSynthesis API
+    if ('speechSynthesis' in window) {
+        let speech = new SpeechSynthesisUtterance(text);  // Create a speech object with the text
+        speech.lang = 'de-DE';  // Set the language for German (can be changed based on your site's language)
+        
+        // Start speaking the text
+        window.speechSynthesis.speak(speech);
+        
+        // Optionally add event listener to notify when speech ends
+        speech.onend = function(event) {
+            console.log("Speech has finished.");
+        };
+
+        speech.onerror = function(event) {
+            console.log("There was an error with the speech synthesis:", event.error);
+        };
+
+    } else {
+        alert("Sorry, your browser does not support text-to-speech.");
+    }
+}
+</script>
+
+</body>
+</html>
