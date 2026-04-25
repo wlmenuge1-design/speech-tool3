@@ -1,46 +1,65 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Text-to-Speech Tool</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vorlese-Tool</title>
 
-        button {
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
+<style>
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
 
-        button:hover {
-            background-color: #45a049;
-        }
-    </style>
+button {
+    padding: 10px 15px;
+    margin: 5px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+.highlight {
+    background-color: yellow;
+}
+
+#content {
+    margin-top: 20px;
+    line-height: 1.6;
+}
+</style>
 </head>
 <body>
 
-<h1>Accessibility Text-to-Speech Tool</h1>
-<p>Klicken Sie auf die Schaltfläche, um den Text vorlesen zu lassen.</p>
+<h1>Vorlese-Tool</h1>
 
-<button onclick="startTextToSpeech()">🎤 Text vorlesen</button>
+<p>Steuern Sie die Wiedergabe und Geschwindigkeit:</p>
 
-<!-- Hidden content for speech -->
-<div id="content" style="display:none;">
+<label>Geschwindigkeit:
+    <input type="range" id="rate" min="0.5" max="1.5" step="0.1" value="1">
+</label>
+<span id="rateValue">1.0</span>
+
+<br>
+
+<button onclick="startSpeech()">▶️ Start</button>
+<button onclick="pauseSpeech()">⏸ Pause</button>
+<button onclick="resumeSpeech()">⏵ Fortsetzen</button>
+<button onclick="stopSpeech()">⏹ Stopp</button>
+
+<div id="content">
 Die Alpen
 
 Die Alpen, die sich über acht Länder erstrecken, blicken auf eine reiche Geschichte zurück.
 
-Seit den Zeiten Hannibals und darüber hinaus haben die Alpen die Geschichte Europas geprägt. Jedoch wurde erst vor relativ kurzer Zeit das Besteigen der Berge zum Thema.
+Seit den Zeiten Hannibals und darüber hinaus haben die Alpen die Geschichte Europas geprägt. Jedoch wurde erst vor relativ kurzer Zeit das Besteigen der Berge zum Thema kam.
 
-Ursprünge Camping in den Alpen:
-
-Für Jahrhunderte glaubten lokale Menschen in den Alpen, dass es unmöglich war, in den Bergen zu campen. Deshalb haben Klettergruppen nur Tagesaufträge eingeführt. Deshalb wurden Gipfel wie der des Mont Blanc effektiv unerreichbar, weil sie einfach zu weit von den Alpendörfern entfernt waren, um an einem Tag erreicht zu werden.
+Ursprünge Camping in den Alpen Für Jahrhunderte glaubten lokale Menschen in den Alpen, dass es unmöglich war, in den Bergen zu campen. Deshalb haben Klettergruppen nur Tagesaufträge eingeführt. Deshalb wurden Gipfel wie der des Mont Blanc effektiv unerreichbar, weil sie einfach zu weit von den Alpendörfern entfernt waren, um an einem Tag erreicht zu werden.
 
 Das erste Beispiel dafür, dass jemand in den Alpen zeltet, fand im Jahr 1786 statt. Ein lokaler Edelsteinsammler namens Jacques Balmat hat unabsichtlich in der Höhe des Mont Blanc übernachtet – etwas, das vorher als unmöglich angesehen wurde.
 
@@ -48,36 +67,77 @@ Kurz danach wurde der Gipfel des Mont Blanc erreicht, weil eine Klettergruppe zu
 
 Angeregt durch seinen Erfolg bestieg Horace-Bénédict de Saussure den Mont Blanc. Dadurch löste er eine Obsession in aristokratischen und wohlhabenden Kreisen in ganz Europa aus. Ab diesem Zeitpunkt wurden Menschen aus der ganzen Welt in die Alpen gezogen.
 
-Klettern in den Alpen:
+Klettern in den Alpen
 
 Klettern in den Alpen ist nicht nur das moderne Klettern, sondern eine Mischung aus Klettern und Bergsteigen. Nach dem anfänglichen Interesse der wohlhabenden Kreise entwickelte sich ein neues Motiv: nationaler Stolz. Der Erfolg in den Alpen wurde eng mit dem Ansehen eines Landes verbunden.
 </div>
 
 <script>
-function startTextToSpeech() {
-    const text = document.getElementById("content").innerText;
+let utterance;
+let text = "";
+let words = [];
+let currentIndex = 0;
+
+const contentDiv = document.getElementById("content");
+const rateSlider = document.getElementById("rate");
+const rateValue = document.getElementById("rateValue");
+
+rateSlider.oninput = () => {
+    rateValue.textContent = rateSlider.value;
+};
+
+function prepareText() {
+    text = contentDiv.innerText;
+    words = text.split(/\s+/);
+
+    contentDiv.innerHTML = words.map(word => `<span>${word} </span>`).join("");
+}
+
+function highlightWord(index) {
+    const spans = contentDiv.querySelectorAll("span");
+    spans.forEach(span => span.classList.remove("highlight"));
+
+    if (spans[index]) {
+        spans[index].classList.add("highlight");
+        spans[index].scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+}
+
+function startSpeech() {
+    prepareText();
+    currentIndex = 0;
 
     if ('speechSynthesis' in window) {
         speechSynthesis.cancel();
 
-        const speech = new SpeechSynthesisUtterance(text);
-        speech.lang = 'de-DE';
+        utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'de-DE';
+        utterance.rate = parseFloat(rateSlider.value);
+
+        utterance.onboundary = function(event) {
+            if (event.name === "word") {
+                highlightWord(currentIndex);
+                currentIndex++;
+            }
+        };
 
         const voices = speechSynthesis.getVoices();
+        utterance.voice = voices.find(v => v.lang === 'de-DE') || voices[0];
 
-        if (voices.length === 0) {
-            speechSynthesis.onvoiceschanged = () => {
-                const loadedVoices = speechSynthesis.getVoices();
-                speech.voice = loadedVoices.find(v => v.lang === 'de-DE') || loadedVoices[0];
-                speechSynthesis.speak(speech);
-            };
-        } else {
-            speech.voice = voices.find(v => v.lang === 'de-DE') || voices[0];
-            speechSynthesis.speak(speech);
-        }
-    } else {
-        alert("Ihr Browser unterstützt keine Sprachsynthese.");
+        speechSynthesis.speak(utterance);
     }
+}
+
+function pauseSpeech() {
+    speechSynthesis.pause();
+}
+
+function resumeSpeech() {
+    speechSynthesis.resume();
+}
+
+function stopSpeech() {
+    speechSynthesis.cancel();
 }
 </script>
 
