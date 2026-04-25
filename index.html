@@ -24,21 +24,27 @@ button:hover {
     background-color: #45a049;
 }
 
-.highlight {
-    background-color: yellow;
+#display {
+    margin-top: 30px;
+    font-size: 24px;
+    line-height: 1.6;
+    min-height: 60px;
 }
 
-#content {
-    margin-top: 20px;
-    line-height: 1.6;
+.word {
+    opacity: 1;
+    transition: opacity 1s ease;
+    margin-right: 5px;
+}
+
+.fade {
+    opacity: 0;
 }
 </style>
 </head>
 <body>
 
 <h1>Vorlese-Tool</h1>
-
-<p>Steuern Sie die Wiedergabe und Geschwindigkeit:</p>
 
 <label>Geschwindigkeit:
     <input type="range" id="rate" min="0.5" max="1.5" step="0.1" value="1">
@@ -52,7 +58,16 @@ button:hover {
 <button onclick="resumeSpeech()">⏵ Fortsetzen</button>
 <button onclick="stopSpeech()">⏹ Stopp</button>
 
-<div id="content">
+<!-- Progress bar -->
+<div style="margin-top:20px;">
+    <input type="range" id="progress" min="0" max="100" value="0" style="width:100%;">
+</div>
+
+<!-- Dynamic display -->
+<div id="display"></div>
+
+<!-- Hidden text -->
+<div id="content" style="display:none;">
 Die Alpen
 
 Die Alpen, die sich über acht Länder erstrecken, blicken auf eine reiche Geschichte zurück.
@@ -74,50 +89,42 @@ Klettern in den Alpen ist nicht nur das moderne Klettern, sondern eine Mischung 
 
 <script>
 let utterance;
-let text = "";
 let words = [];
-let currentIndex = 0;
+let index = 0;
+let fullText = "";
 
-const contentDiv = document.getElementById("content");
+const display = document.getElementById("display");
 const rateSlider = document.getElementById("rate");
 const rateValue = document.getElementById("rateValue");
+const progress = document.getElementById("progress");
 
 rateSlider.oninput = () => {
     rateValue.textContent = rateSlider.value;
 };
 
-function prepareText() {
-    text = contentDiv.innerText;
-    words = text.split(/\s+/);
+function startSpeech(startIndex = 0) {
+    fullText = document.getElementById("content").innerText;
+    words = fullText.split(/\s+/);
+    index = startIndex;
 
-    contentDiv.innerHTML = words.map(word => `<span>${word} </span>`).join("");
-}
-
-function highlightWord(index) {
-    const spans = contentDiv.querySelectorAll("span");
-    spans.forEach(span => span.classList.remove("highlight"));
-
-    if (spans[index]) {
-        spans[index].classList.add("highlight");
-        spans[index].scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-}
-
-function startSpeech() {
-    prepareText();
-    currentIndex = 0;
+    display.innerHTML = "";
 
     if ('speechSynthesis' in window) {
         speechSynthesis.cancel();
 
-        utterance = new SpeechSynthesisUtterance(text);
+        const remainingText = words.slice(startIndex).join(" ");
+
+        utterance = new SpeechSynthesisUtterance(remainingText);
         utterance.lang = 'de-DE';
         utterance.rate = parseFloat(rateSlider.value);
 
         utterance.onboundary = function(event) {
             if (event.name === "word") {
-                highlightWord(currentIndex);
-                currentIndex++;
+                showWord(words[index]);
+                index++;
+
+                // update progress
+                progress.value = (index / words.length) * 100;
             }
         };
 
@@ -126,6 +133,17 @@ function startSpeech() {
 
         speechSynthesis.speak(utterance);
     }
+}
+
+function showWord(word) {
+    const span = document.createElement("span");
+    span.textContent = word;
+    span.className = "word";
+
+    display.appendChild(span);
+
+    setTimeout(() => span.classList.add("fade"), 800);
+    setTimeout(() => span.remove(), 1800);
 }
 
 function pauseSpeech() {
@@ -138,7 +156,15 @@ function resumeSpeech() {
 
 function stopSpeech() {
     speechSynthesis.cancel();
+    display.innerHTML = "";
+    progress.value = 0;
 }
+
+// Scrubbing
+progress.addEventListener("input", function() {
+    const newIndex = Math.floor((progress.value / 100) * words.length);
+    startSpeech(newIndex);
+});
 </script>
 
 </body>
